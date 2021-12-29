@@ -908,8 +908,27 @@ static int command(AVFilterContext *ctx, const char *cmd, const char *arg, char 
 
         ctx->priv = new;
         return config_input(ctx->inputs[0]);
-    } else
-        return AVERROR(ENOSYS);
+    } 
+    if (!strcmp(cmd, "changetext")) {
+        DrawTextContext *s = ctx->priv;
+        int err;
+        uint8_t *textbuf = arg;
+        uint8_t *tmp;
+        size_t textbuf_size = strlen(arg);
+
+        if (textbuf_size > 0 && is_newline(textbuf[textbuf_size - 1]))
+            textbuf_size--;
+        if (textbuf_size > SIZE_MAX - 1 || !(tmp = av_realloc(s->text, textbuf_size + 1))) {
+            return AVERROR(ENOMEM);
+        }
+        s->text = tmp;
+        memcpy(s->text, textbuf, textbuf_size);
+        s->text[textbuf_size] = 0;
+
+        return config_input(ctx->inputs[0]);
+    }
+    
+    return AVERROR(ENOSYS);
 
 fail:
     av_log(ctx, AV_LOG_ERROR, "Failed to process command. Continuing with existing parameters.\n");
